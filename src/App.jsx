@@ -1,15 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { LANGS, T } from "./translations";
 import "./App.css";
 
 const HERO_MAP = {
-  Zagreb: "/hero-zagreb.jpg",
-  Split: "/hero-split.jpg",
-  Karlovac: "/hero-karlovac.jpg",
-  Zadar: "/hero-zadar.jpg"
+  Zagreb: "/assets/hero-zagreb.jpg",
+  Split: "/assets/hero-split.jpg",
+  Karlovac: "/assets/hero-karlovac.jpg",
+  Zadar: "/assets/hero-zadar.jpg"
 };
 
-const CITIES = ["Zadar", "Split", "Zagreb", "Karlovac"];
+const CITIES = ["Zagreb", "Split", "Zadar", "Karlovac"];
 
 export default function App() {
   const [lang, setLang] = useState("hr");
@@ -19,66 +19,46 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [activeWindow, setActiveWindow] = useState(null);
   const [showIntro, setShowIntro] = useState(true);
-  const [listening, setListening] = useState(false);
+  const [view, setView] = useState("home"); // home | nav
+  const [navFrom, setNavFrom] = useState("");
+  const [navTo, setNavTo] = useState("");
 
-  const dict = T[lang];
+  const currentDict = T[lang];
 
-  // INTRO – svaki ulazak
+  // INTRO – sigurnosni timeout + skip
   useEffect(() => {
     const vid = document.getElementById("tbw-intro-video");
-    if (!vid) {
-      const t = setTimeout(() => setShowIntro(false), 2500);
-      return () => clearTimeout(t);
+    const timer = setTimeout(() => setShowIntro(false), 6000);
+
+    if (vid) {
+      vid.onended = () => {
+        clearTimeout(timer);
+        setShowIntro(false);
+      };
     }
-    vid.onended = () => setShowIntro(false);
+
+    return () => clearTimeout(timer);
   }, []);
 
-  // HERO slika po gradu
+  // HERO po gradu
   useEffect(() => {
     setHero(HERO_MAP[city] || HERO_MAP["Zadar"]);
   }, [city]);
 
-  // TIKER tekst
-  const tickerText =
-    "Traffic · Weather · Sea · Events · Shops · Airports · TBW AI LIVE · Informational only – always follow official sources.";
+  // ticker tekst
+  const tickerText = useMemo(
+    () =>
+      "Traffic · Weather · Sea · Events · Shops · Airports · TBW AI LIVE · Informational only – always follow official sources.",
+    []
+  );
 
-  const runSearch = (query) => {
-    const q = query.trim();
+  const handleSearch = () => {
+    const q = search.trim();
     if (!q) return;
 
-    // prepoznavanje grada iz govora/teksta
-    const lower = q.toLowerCase();
-    if (lower.includes("split")) setCity("Split");
-    if (lower.includes("zadar")) setCity("Zadar");
-    if (lower.includes("zagreb")) setCity("Zagreb");
-    if (lower.includes("karlovac")) setCity("Karlovac");
-
-    // smještaj
-    if (
-      lower.includes("apartman") ||
-      lower.includes("apartmane") ||
-      lower.includes("smještaj") ||
-      lower.includes("apartment") ||
-      lower.includes("hotel")
-    ) {
-      setActiveWindow("accommodation");
-      return;
-    }
-
-    // navigacija
-    if (
-      lower.includes("navigiraj") ||
-      lower.includes("vodi me") ||
-      lower.includes("route") ||
-      lower.includes("navigate")
-    ) {
-      openNav();
-      return;
-    }
-
-    // default – demo TBW AI engine
     if (mode === "premium") {
-      alert("TBW AI premium engine – synced search for:\n\n" + q);
+      // Ovdje će kasnije TBW NavEngine backend
+      window.alert("TBW AI premium engine – synced search for:\n\n" + q);
     } else {
       window.open(
         "https://www.google.com/search?q=" + encodeURIComponent(q),
@@ -87,93 +67,115 @@ export default function App() {
     }
   };
 
-  const handleSearch = () => {
-    runSearch(search);
-  };
-
+  // MIC – Web Speech API ako postoji
   const handleMic = () => {
-    // voice samo u premium modu
-    if (mode !== "premium") {
-      alert("Voice TBW AI dostupna je u Premium modu.");
+    if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
+      window.alert(
+        lang === "hr"
+          ? "Glasovno pretraživanje nije podržano u ovom pregledniku."
+          : "Voice recognition is not supported in this browser."
+      );
       return;
     }
 
-    const SpeechRecognition =
+    const SR =
       window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Tvoj uređaj/browser ne podržava voice recognition.");
-      return;
-    }
+    const recognition = new SR();
+    recognition.lang = lang === "hr" ? "hr-HR" : "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
-    const rec = new SpeechRecognition();
-    rec.lang = lang === "hr" ? "hr-HR" : "en-US";
-    rec.interimResults = false;
-    rec.maxAlternatives = 1;
-
-    rec.onstart = () => setListening(true);
-    rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
-
-    rec.onresult = (e) => {
+    recognition.onresult = (e) => {
       const text = e.results[0][0].transcript;
       setSearch(text);
-      runSearch(text);
+      setTimeout(handleSearch, 200);
     };
 
-    rec.start();
+    recognition.onerror = () => {
+      window.alert(
+        lang === "hr"
+          ? "Greška pri slušanju mikrofona."
+          : "Error while listening to microphone."
+      );
+    };
+
+    recognition.start();
   };
 
   const openNav = () => {
-    if (mode !== "premium") {
-      window.open("https://www.google.com/maps/dir/", "_blank");
-      return;
-    }
-    setActiveWindow("navigation");
+    setView("nav");
+    setNavFrom(city);
+    setNavTo("");
   };
 
   const openWindow = (id) => setActiveWindow(id);
   const closeWindow = () => setActiveWindow(null);
 
-  // tekst u prozorima
+  const exitNav = () => {
+    setView("home");
+  };
+
+  const startRoute = () => {
+    const from = navFrom || city;
+    const to = navTo.trim();
+    if (!to) {
+      window.alert(
+        lang === "hr"
+          ? "Unesi odredište."
+          : "Please enter a destination."
+      );
+      return;
+    }
+
+    // Za sada – otvara Google Maps; kasnije TBW NavEngine
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
+      from
+    )}&destination=${encodeURIComponent(to)}`;
+    window.open(url, "_blank");
+  };
+
+  // sadržaj prozora
   const renderWindowContent = () => {
     if (!activeWindow) return null;
+
     const isPremium = mode === "premium";
 
     switch (activeWindow) {
       case "navigation":
         return (
           <>
-            <h2>{dict.premiumNavTitle}</h2>
+            <h2>{currentDict.premiumNavTitle}</h2>
             <p className="modal-text">
-              {isPremium ? dict.premiumNavText : dict.freeNavText}
+              {isPremium ? currentDict.premiumNavText : currentDict.freeNavText}
             </p>
             {isPremium && (
-              <>
-                <ul className="modal-list">
-                  <li>Glasovne upute (hands–free, Bluetooth u autu).</li>
-                  <li>Live promet, kamere, radovi i alternativne rute.</li>
-                  <li>Truck profil: visine, mase, zabrane i odmor.</li>
-                  <li>
-                    AI suputnik: „hej TBW, vodi me najbrže i najsigurnije do
-                    odredišta“.
-                  </li>
-                </ul>
-                <p className="modal-text">
-                  Ovo je frontend cockpit – pravi TBW NavEngine backend i
-                  senzori (umor, alkohol, nasilje, child mode) dolaze kroz
-                  Premium backend.
-                </p>
-              </>
+              <ul className="modal-list">
+                <li>Glasovne upute (hands–free, Bluetooth u autu).</li>
+                <li>Live promet, kamere, radovi i alternativne rute.</li>
+                <li>Truck profil: visine, mase, zabrane i odmor.</li>
+                <li>
+                  AI suputnik: „hej TBW, vodi me najbrže i najsigurnije do
+                  odredišta”.
+                </li>
+              </ul>
+            )}
+            {!isPremium && (
+              <p className="modal-text">
+                Premium senzori (umor, alkohol, nasilje, child mode) i TBW
+                NavEngine dostupni su u plaćenoj verziji.
+              </p>
             )}
           </>
         );
       case "weather":
         return (
           <>
-            <h2>{dict.weatherTitleModal}</h2>
-            <p className="modal-text">{dict.weatherText}</p>
+            <h2>{currentDict.weatherTitleModal}</h2>
+            <p className="modal-text">{currentDict.weatherText}</p>
             <ul className="modal-list">
-              <li>Grad: {city}</li>
+              <li>
+                Grad: <strong>{city}</strong>
+              </li>
               <li>Temperatura: 18–21°C (primjer)</li>
               <li>Vjetar: 12 km/h, umjereno</li>
               <li>More: smireno, kupanje moguće (ovisno o sezoni)</li>
@@ -183,8 +185,8 @@ export default function App() {
       case "accommodation":
         return (
           <>
-            <h2>{dict.accommodation}</h2>
-            <p className="modal-text">{dict.accommodationText}</p>
+            <h2>{currentDict.accommodation}</h2>
+            <p className="modal-text">{currentDict.accommodationText}</p>
             <ul className="modal-list">
               <li>Grad: {city}</li>
               <li>
@@ -210,8 +212,8 @@ export default function App() {
       case "traffic":
         return (
           <>
-            <h2>{dict.traffic}</h2>
-            <p className="modal-text">{dict.trafficText}</p>
+            <h2>{currentDict.traffic}</h2>
+            <p className="modal-text">{currentDict.trafficText}</p>
             <ul className="modal-list">
               <li>Grad: {city}</li>
               <li>Prosječna brzina kroz grad: 30–45 km/h.</li>
@@ -223,8 +225,8 @@ export default function App() {
       case "events":
         return (
           <>
-            <h2>{dict.events}</h2>
-            <p className="modal-text">{dict.eventsText}</p>
+            <h2>{currentDict.events}</h2>
+            <p className="modal-text">{currentDict.eventsText}</p>
             <ul className="modal-list">
               <li>Večeras: koncert na otvorenom u centru {city}.</li>
               <li>Klubovi: rad produžen do 05:00 (ovisno o gradu).</li>
@@ -235,8 +237,8 @@ export default function App() {
       case "shops":
         return (
           <>
-            <h2>{dict.shops}</h2>
-            <p className="modal-text">{dict.shopsText}</p>
+            <h2>{currentDict.shops}</h2>
+            <p className="modal-text">{currentDict.shopsText}</p>
             <ul className="modal-list">
               <li>Najbliže trgovine: Konzum, Spar, Lidl (primjer).</li>
               <li>Shopping centri: po gradu {city} ili okolici.</li>
@@ -247,8 +249,8 @@ export default function App() {
       case "sos":
         return (
           <>
-            <h2>{dict.sos}</h2>
-            <p className="modal-text">{dict.sosText}</p>
+            <h2>{currentDict.sos}</h2>
+            <p className="modal-text">{currentDict.sosText}</p>
             <ul className="modal-list">
               <li>112 – EU hitne službe.</li>
               <li>Policija, vatrogasci, hitna pomoć.</li>
@@ -270,38 +272,32 @@ export default function App() {
       case "child":
         return (
           <>
-            <h2>{dict.childMode}</h2>
-            <p className="modal-text">{dict.childModeText}</p>
+            <h2>{currentDict.child}</h2>
+            <p className="modal-text">{currentDict.childText}</p>
             <ul className="modal-list">
+              <li>Unos mladog vozača, vozila i kontakta roditelja.</li>
               <li>
-                TBW prati navike vozača, brzinu, nagla kočenja i umor (kamera +
-                senzori).
+                Savjeti za vožnju, ograničenja snage i upozorenja na rizične
+                dionice.
               </li>
               <li>
-                U child modu možeš upisati roditelja/guardiana za sigurnosne
-                notifikacije.
-              </li>
-              <li>
-                Ovo je frontend profil – stvarni backend za upozorenja i
-                notifikacije dolazi uz TBW NavEngine.
+                U Premiumu: TBW prati navike vožnje i pomaže učiti sigurniji
+                stil.
               </li>
             </ul>
           </>
         );
-      case "emergency":
+      case "emergencyMode":
         return (
           <>
-            <h2>{dict.emergencyMode}</h2>
-            <p className="modal-text">{dict.emergencyModeText}</p>
+            <h2>{currentDict.emergencyMode}</h2>
+            <p className="modal-text">{currentDict.emergencyModeText}</p>
             <ul className="modal-list">
-              <li>Kvar vozila, nesreća, nasilje ili prijetnja.</li>
+              <li>Kvar vozila, djelomično mobilno vozilo.</li>
+              <li>Opasne situacije, potjere, nasilje u vozilu.</li>
               <li>
-                TBW pomaže locirati vozilo, nazvati pomoć i voditi te kroz
-                korake.
-              </li>
-              <li>
-                Uvijek slijedi upute službenih hitnih službi – TBW je
-                informativan alat.
+                TBW te vodi prema sigurnom mjestu i po potrebi pomaže pozvati
+                službe.
               </li>
             </ul>
           </>
@@ -309,27 +305,22 @@ export default function App() {
       case "services":
         return (
           <>
-            <h2>{dict.services}</h2>
-            <p className="modal-text">{dict.servicesText}</p>
+            <h2>{currentDict.services}</h2>
+            <p className="modal-text">{currentDict.servicesText}</p>
             <ul className="modal-list">
-              <li>Auto servisi i vulkanizeri u blizini.</li>
-              <li>Šlep službe i pomoć na cesti.</li>
-              <li>Punionice (struja, plin) za vozilo.</li>
+              <li>Servisi i vulkanizeri u krugu oko {city}.</li>
+              <li>Pomoć na cesti i vučna služba (demo linkovi).</li>
             </ul>
           </>
         );
       case "transport":
         return (
           <>
-            <h2>{dict.transport}</h2>
-            <p className="modal-text">{dict.transportText}</p>
+            <h2>{currentDict.transport}</h2>
+            <p className="modal-text">{currentDict.transportText}</p>
             <ul className="modal-list">
-              <li>Taxi i ride-share opcije u blizini.</li>
-              <li>Javni prijevoz (bus, tramvaj, vlak).</li>
-              <li>
-                Preporuka TBW: ako si umoran ili pod utjecajem alkohola – nemoj
-                voziti, koristi alternative.
-              </li>
+              <li>Taxi i ride-hailing servisi.</li>
+              <li>Javni prijevoz, shuttle, trajekti (ovisno o gradu).</li>
             </ul>
           </>
         );
@@ -337,6 +328,8 @@ export default function App() {
         return null;
     }
   };
+
+  // UI
 
   return (
     <div className="app-root">
@@ -346,12 +339,19 @@ export default function App() {
           <div className="intro-inner">
             <video
               id="tbw-intro-video"
-              autoPlay
-              muted={false}
               className="intro-video"
               src="/intro.mp4"
+              autoPlay
+              muted
+              playsInline
             />
             <div className="intro-fallback">TBW AI PREMIUM NAVIGATOR</div>
+            <button
+              className="intro-skip-btn"
+              onClick={() => setShowIntro(false)}
+            >
+              Skip intro
+            </button>
           </div>
         </div>
       )}
@@ -411,7 +411,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* TIKER */}
+      {/* TICKER */}
       <div
         className={`tbw-ticker ${
           mode === "premium" ? "ticker-premium" : "ticker-normal"
@@ -423,120 +423,182 @@ export default function App() {
         </div>
       </div>
 
-      {/* HERO */}
-      <section className="hero-shell">
-        <div className="hero" style={{ backgroundImage: `url(${hero})` }}>
-          <div className="hero-overlay">
-            <div className="hero-top-row">
-              <div className="city-label">{dict.cityLabel}:</div>
-              <div className="city-buttons">
-                {CITIES.map((c) => (
+      {/* HERO + SEARCH */}
+      {view === "home" && (
+        <>
+          <section className="hero-shell">
+            <div
+              className="hero"
+              style={{ backgroundImage: `url(${hero})` }}
+            >
+              <div className="hero-overlay">
+                <div className="hero-top-row">
+                  <div className="city-label">{currentDict.cityLabel}:</div>
+                  <div className="city-buttons">
+                    {CITIES.map((c) => (
+                      <button
+                        key={c}
+                        className={c === city ? "city-btn active" : "city-btn"}
+                        onClick={() => setCity(c)}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="search-box">
+                  <input
+                    className="search-input"
+                    placeholder={currentDict.searchPlaceholder}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
                   <button
-                    key={c}
-                    className={c === city ? "city-btn active" : "city-btn"}
-                    onClick={() => setCity(c)}
+                    type="button"
+                    className="search-mic"
+                    onClick={handleMic}
                   >
-                    {c}
+                    🎤
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    className="search-btn"
+                    onClick={handleSearch}
+                  >
+                    TBW AI
+                  </button>
+                </div>
               </div>
             </div>
+          </section>
 
-            <div className="search-box">
-              <input
-                className="search-input"
-                placeholder={dict.searchPlaceholder}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              <button
-                type="button"
-                className={`search-mic ${listening ? "listening" : ""}`}
-                onClick={handleMic}
+          {/* KARTICE */}
+          <main className="main-scroll">
+            <div className="cards-grid">
+              <article className="card" onClick={openNav}>
+                <h3>{currentDict.navigation}</h3>
+                <p>
+                  {city} · AI copilot ·{" "}
+                  {mode === "premium" ? "full" : "basic"} mode
+                </p>
+              </article>
+
+              <article
+                className="card"
+                onClick={() => openWindow("accommodation")}
               >
+                <h3>{currentDict.accommodation}</h3>
+                <p>{city} · apartmani, hoteli, sobe</p>
+              </article>
+
+              <article className="card" onClick={() => openWindow("weather")}>
+                <h3>{currentDict.weather}</h3>
+                <p>{city} · temperature, vjetar, more</p>
+              </article>
+
+              <article className="card" onClick={() => openWindow("traffic")}>
+                <h3>{currentDict.traffic}</h3>
+                <p>{city} · gužve, radovi, nesreće</p>
+              </article>
+
+              <article className="card" onClick={() => openWindow("events")}>
+                <h3>{currentDict.events}</h3>
+                <p>{city} · koncerti, nightlife, događanja</p>
+              </article>
+
+              <article className="card" onClick={() => openWindow("shops")}>
+                <h3>{currentDict.shops}</h3>
+                <p>trgovine, shopping centri, benzinske</p>
+              </article>
+
+              <article className="card" onClick={() => openWindow("sos")}>
+                <h3>{currentDict.sos}</h3>
+                <p>SOS profil, ICE kontakti, 112/911</p>
+              </article>
+
+              <article className="card" onClick={() => openWindow("child")}>
+                <h3>{currentDict.child}</h3>
+                <p>sigurnost za mlade vozače</p>
+              </article>
+
+              <article
+                className="card"
+                onClick={() => openWindow("emergencyMode")}
+              >
+                <h3>{currentDict.emergencyMode}</h3>
+                <p>kvar, opasnost, nasilje – pomoć</p>
+              </article>
+
+              <article className="card" onClick={() => openWindow("services")}>
+                <h3>{currentDict.services}</h3>
+                <p>servisi, vulkanizeri, pomoć na cesti</p>
+              </article>
+
+              <article className="card" onClick={() => openWindow("transport")}>
+                <h3>{currentDict.transport}</h3>
+                <p>taxi, javni prijevoz, shuttle</p>
+              </article>
+            </div>
+
+            <footer className="tbw-footer">
+              TBW AI PREMIUM NAVIGATOR is an informational tool only. It does
+              not replace official traffic, weather, maritime or aviation
+              sources. Always follow road signs, police instructions and
+              official emergency services. All rights reserved. Dražen Halar –
+              Founder & IP Owner TBW.
+            </footer>
+          </main>
+        </>
+      )}
+
+      {/* NAVIGACIJSKI EKRAN */}
+      {view === "nav" && (
+        <main className="nav-screen">
+          <div className="nav-header">
+            <button className="nav-back-btn" onClick={exitNav}>
+              ← {currentDict.navBack}
+            </button>
+            <h1>{currentDict.navScreenTitle}</h1>
+          </div>
+
+          <div className="nav-panel">
+            <label className="nav-label">
+              {currentDict.navFrom}
+              <input
+                className="nav-input"
+                value={navFrom}
+                onChange={(e) => setNavFrom(e.target.value)}
+              />
+            </label>
+
+            <label className="nav-label">
+              {currentDict.navTo}
+              <input
+                className="nav-input"
+                value={navTo}
+                onChange={(e) => setNavTo(e.target.value)}
+                placeholder={lang === "hr" ? "npr. Split aerodrom" : "e.g. airport"}
+              />
+            </label>
+
+            <div className="nav-actions">
+              <button className="nav-mic-btn" onClick={handleMic}>
                 🎤
               </button>
-              <button
-                type="button"
-                className="search-btn"
-                onClick={handleSearch}
-              >
-                TBW AI
+              <button className="nav-start-btn" onClick={startRoute}>
+                {currentDict.navStart}
               </button>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* KARTICE */}
-      <main className="main-scroll">
-        <div className="cards-grid">
-          <article className="card" onClick={openNav}>
-            <h3>{dict.navigation}</h3>
-            <p>
-              {city} · AI copilot · {mode === "premium" ? "full" : "basic"} mode
+            <p className="nav-note">
+              TBW AI NavEngine (umor, alkohol, nasilje, child mode, senzori)
+              radi u Premium modu preko backenda. Ovaj ekran je frontend
+              cockpit, spreman za spajanje na tvoj engine.
             </p>
-          </article>
-
-          <article className="card" onClick={() => openWindow("accommodation")}>
-            <h3>{dict.accommodation}</h3>
-            <p>{city} · apartmani, hoteli, sobe</p>
-          </article>
-
-          <article className="card" onClick={() => openWindow("weather")}>
-            <h3>{dict.weather}</h3>
-            <p>{city} · temperatura, vjetar, more</p>
-          </article>
-
-          <article className="card" onClick={() => openWindow("traffic")}>
-            <h3>{dict.traffic}</h3>
-            <p>{city} · gužve, radovi, nesreće</p>
-          </article>
-
-          <article className="card" onClick={() => openWindow("events")}>
-            <h3>{dict.events}</h3>
-            <p>{city} · koncerti, nightlife, događanja</p>
-          </article>
-
-          <article className="card" onClick={() => openWindow("shops")}>
-            <h3>{dict.shops}</h3>
-            <p>trgovine, shopping centri, benzinske</p>
-          </article>
-
-          <article className="card" onClick={() => openWindow("sos")}>
-            <h3>{dict.sos}</h3>
-            <p>SOS profil, ICE kontakti, 112/911</p>
-          </article>
-
-          <article className="card" onClick={() => openWindow("child")}>
-            <h3>{dict.childMode}</h3>
-            <p>sigurnost za mlade vozače</p>
-          </article>
-
-          <article className="card" onClick={() => openWindow("emergency")}>
-            <h3>{dict.emergencyMode}</h3>
-            <p>kvar, nesreća, nasilje – pomoć</p>
-          </article>
-
-          <article className="card" onClick={() => openWindow("services")}>
-            <h3>{dict.services}</h3>
-            <p>servisi, vulkanizeri, šlep</p>
-          </article>
-
-          <article className="card" onClick={() => openWindow("transport")}>
-            <h3>{dict.transport}</h3>
-            <p>taxi, javni prijevoz, shuttle</p>
-          </article>
-        </div>
-
-        <footer className="tbw-footer">
-          TBW AI PREMIUM NAVIGATOR is an informational tool only. It does not
-          replace official traffic, weather, maritime or aviation sources.
-          Always follow road signs, police instructions and official emergency
-          services. All rights reserved. Dražen Halar – Founder &amp; IP Owner
-          TBW.
-        </footer>
-      </main>
+          </div>
+        </main>
+      )}
 
       {/* MODAL */}
       {activeWindow && (
