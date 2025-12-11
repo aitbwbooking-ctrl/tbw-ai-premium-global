@@ -1,14 +1,19 @@
-const CACHE_NAME = "tbw-ai-v18";
+// TBW AI – simple PWA cache
+
+const CACHE_NAME = "tbw-ai-v20";
 const CORE_ASSETS = [
   "/",
   "/index.html",
   "/manifest.json",
   "/tbw-logo.png",
   "/tbw-logo-512.png",
+  "/tbw-logo-1024.png",
   "/intro.mp4",
-  "/hero-zagreb.jpg",
-  "/hero-split.jpg",
+  "/hero-paris-desktop.jpg",
+  "/hero-paris-mobile.jpg",
   "/hero-zadar.jpg",
+  "/hero-split.jpg",
+  "/hero-zagreb.jpg",
   "/hero-karlovac.jpg"
 ];
 
@@ -23,9 +28,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
-        keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((oldKey) => caches.delete(oldKey))
+        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
       )
     )
   );
@@ -36,25 +39,27 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
+  // statika – cache first
   if (
-    CORE_ASSETS.some((asset) => request.url.includes(asset)) ||
-    request.destination === "image" ||
-    request.destination === "style" ||
-    request.destination === "script"
+    CORE_ASSETS.some((a) => request.url.includes(a)) ||
+    ["image", "style", "script"].includes(request.destination)
   ) {
     event.respondWith(
       caches.match(request).then(
         (cached) =>
           cached ||
-          fetch(request).then((response) => {
-            const copy = response.clone();
+          fetch(request).then((resp) => {
+            const copy = resp.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-            return response;
+            return resp;
           })
       )
     );
     return;
   }
 
-  event.respondWith(fetch(request).catch(() => caches.match(request)));
+  // ostalo – network first
+  event.respondWith(
+    fetch(request).catch(() => caches.match(request))
+  );
 });
