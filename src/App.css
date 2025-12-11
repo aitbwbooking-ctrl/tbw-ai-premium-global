@@ -525,3 +525,97 @@ body {
     grid-template-columns: 1fr;
   }
 }
+/* dodatno za intro skip */
+.intro-skip-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(15, 23, 42, 0.9);
+  color: #e5f0ff;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+}
+
+/* NAV screen */
+.nav-screen {
+  margin-top: 94px;
+  padding: 20px 14px 40px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.nav-header h1 {
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+}
+
+.nav-back-btn {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: rgba(15, 23, 42, 0.9);
+  color: #e5f0ff;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.nav-panel {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 16px 14px 18px;
+  box-shadow: var(--shadow);
+}
+
+.nav-label {
+  display: block;
+  font-size: 0.8rem;
+  margin-bottom: 8px;
+  color: var(--muted);
+}
+
+.nav-input {
+  width: 100%;
+  margin-top: 4px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: rgba(15, 23, 42, 0.9);
+  color: var(--text);
+}
+
+.nav-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  margin-bottom: 10px;
+}
+
+.nav-mic-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: none;
+  background: radial-gradient(circle, #0ea5e9 0%, #22f3a3 60%);
+  cursor: pointer;
+}
+
+.nav-start-btn {
+  flex: 1;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(120deg, #22c55e, #22f3a3);
+  color: #020617;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nav-note {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
