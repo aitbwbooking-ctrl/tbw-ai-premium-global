@@ -1,3 +1,5 @@
+// translations.js – jezici + osnovne fraze
+
 export const LANGS = {
   hr: "Hrvatski",
   en: "English",
@@ -61,18 +63,13 @@ export const T = {
     sosText:
       "SOS profil, ICE kontakti i brzi pozivi hitnim službama. TBW je informativan alat – uvijek slijedi upute službi.",
     childText:
-      "Child mode: profil mladog vozača, broj roditelja, vozilo, ograničenja snage i sigurnosni savjeti.",
+      "Child mode – povezuješ vozilo i korisnika (mladi vozač). TBW prati navike vožnje, umor, rizike i javlja roditelju samo u hitnim situacijama.",
     emergencyModeText:
-      "Emergency mode: kvar, djelomično mobilno vozilo, opasne situacije i hitna pomoć na ruti.",
+      "Emergency mode – kvar, nesreća, nasilje, potjera. TBW koristi kamere, ton i lokaciju kako bi pomogao, ali pozive hitnim službama pokreće samo kad je 100% siguran.",
     servicesText:
-      "Auto servisi, vulkanizeri i pomoć na cesti u tvojoj blizini.",
+      "Servisi, vulkanizeri, šlep i tehnička pomoć u blizini tvoje lokacije ili rute.",
     transportText:
-      "Taxi, javni prijevoz, shuttle i drugi oblici prijevoza.",
-    navScreenTitle: "TBW AI Premium Navigacija",
-    navFrom: "Polazište",
-    navTo: "Odredište",
-    navStart: "Pokreni rutu",
-    navBack: "Natrag na početni ekran"
+      "Taxi, javni prijevoz, shuttle i prijevoz do/od aerodroma."
   },
   en: {
     searchPlaceholder: "Ask TBW…",
@@ -85,8 +82,8 @@ export const T = {
     sos: "Safety & SOS",
     child: "Child mode",
     emergencyMode: "Emergency mode",
-    services: "Service & workshop",
-    transport: "Transport & taxi",
+    services: "Service & tires",
+    transport: "Transport & rides",
     cityLabel: "City",
     premiumNavTitle: "TBW premium navigation",
     premiumNavText:
@@ -107,17 +104,13 @@ export const T = {
     sosText:
       "SOS profile, ICE contacts and quick emergency calls. TBW is an informational tool – always follow official emergency instructions.",
     childText:
-      "Child mode: young driver profile, parent contact, vehicle and safe-driving assistant.",
+      "Child mode – link car + young driver. TBW learns driving habits, fatigue and risk patterns and only alerts parents in true emergencies.",
     emergencyModeText:
-      "Emergency mode: breakdown, partial mobility, dangerous pursues – TBW helps you reach a safe point.",
+      "Emergency mode – breakdown, crash, violence, chase. TBW uses sensors, sound and cameras to help, and calls emergency services only when it is 100% sure.",
     servicesText:
-      "Car repair shops, tyre services and road assistance around you.",
-    transportText: "Taxi, public transport and shuttle options.",
-    navScreenTitle: "TBW AI Premium Navigation",
-    navFrom: "From",
-    navTo: "To",
-    navStart: "Start route",
-    navBack: "Back to home"
+      "Garages, repair shops, tire services and tow trucks near your route.",
+    transportText:
+      "Taxi, rides, public transport and airport shuttles."
   },
   de: {
     searchPlaceholder: "Frag TBW…",
@@ -130,7 +123,7 @@ export const T = {
     sos: "Sicherheit & SOS",
     child: "Child mode",
     emergencyMode: "Notfallmodus",
-    services: "Service & Werkstatt",
+    services: "Service & Reifen",
     transport: "Transport & Taxi",
     cityLabel: "Stadt",
     premiumNavTitle: "TBW Premium Navigation",
@@ -146,29 +139,23 @@ export const T = {
     trafficText:
       "Verkehrslage, Baustellen, Unfälle und Staus. Premium nutzt den TBW Motor und Verkehrsquellen.",
     eventsText:
-      "Konzerte, Veranstaltungen, Nightlife und lokale Empfehlungen für die ausgewählte Stadt.",
+      "Konzerte, Veranstaltungen, Nightlife und lokale Empfehlungen.",
     shopsText:
       "Lebensmittel, Einkaufszentren, Tankstellen und EV-Ladestationen in deiner Nähe.",
     sosText:
       "SOS-Profil, ICE-Kontakte und schnelle Notrufe. TBW ist ein Informations-Tool – folge immer offiziellen Anweisungen.",
     childText:
-      "Child mode: Profil junger Fahrer, Elternkontakt, Fahrzeug und Sicherheitsassistent.",
+      "Child mode – Fahrzeug + junger Fahrer verknüpfen. TBW beobachtet Fahrstil, Müdigkeit und Risiken.",
     emergencyModeText:
-      "Notfallmodus: Panne, teilweise Mobilität, Gefahrensituationen – TBW leitet dich zu einem sicheren Ort.",
+      "Notfallmodus – Panne, Unfall, Gewalt, Verfolgung. TBW hilft mit Sensoren und ruft Notdienste nur bei echter Gefahr.",
     servicesText:
-      "Werkstätten, Reifenservice und Pannenhilfe in deiner Nähe.",
-    transportText: "Taxi, öffentlicher Verkehr und Shuttle.",
-    navScreenTitle: "TBW AI Premium Navigation",
-    navFrom: "Start",
-    navTo: "Ziel",
-    navStart: "Route starten",
-    navBack: "Zurück zum Start"
+      "Werkstätten, Reifenservice und Abschleppdienste in deiner Nähe.",
+    transportText:
+      "Taxi, Fahrdienste, ÖPNV und Flughafenshuttles."
   }
 };
 
 // fallback: svi ostali jezici koriste en tekstove
 Object.keys(LANGS).forEach((code) => {
-  if (!T[code]) {
-    T[code] = { ...T.en };
-  }
+  if (!T[code]) T[code] = { ...T.en };
 });
