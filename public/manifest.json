@@ -7,7 +7,7 @@
   "orientation": "portrait",
   "background_color": "#020617",
   "theme_color": "#020617",
-  "description": "TBW AI PREMIUM – smart global navigation, booking and city assistant.",
+  "description": "TBW AI PREMIUM – smart navigator, stays and city guide in one.",
   "icons": [
     {
       "src": "/tbw-logo.png",
@@ -15,13 +15,8 @@
       "type": "image/png"
     },
     {
-      "src": "/tbw-logo-512.png",
+      "src": "/tbw-logo.png",
       "sizes": "512x512",
-      "type": "image/png"
-    },
-    {
-      "src": "/tbw-logo-1024.png",
-      "sizes": "1024x1024",
       "type": "image/png"
     }
   ]
